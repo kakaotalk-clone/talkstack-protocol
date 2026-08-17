@@ -29,10 +29,14 @@ message MessageCreated {
 
 message ReadUpdatedEvent {
   int64 room_id      = 1;
-  int64 user_id      = 2;
+  int64 user_id      = 2;   // 읽은 사람. 이 사람에게는 되돌려 보내지 않습니다
   int64 seq          = 3;
-  int64 min_read_seq = 4;
+  int64 min_read_seq = 4;   // 방 전체의 최소 읽음 위치. 클라이언트가 이걸로 "1"을 지웁니다
   int64 occurred_at  = 5;
+
+  // 필드 추가는 하위 호환이라 안전합니다 (README 의 호환성 규칙 참조).
+  // 컨슈머가 방 정보를 다시 조회하지 않도록 fanout 대상을 함께 실어 보냅니다.
+  repeated int64 member_ids = 6;
 }
 
 // 접속 중이 아닌 멤버에게만 발행됩니다.
