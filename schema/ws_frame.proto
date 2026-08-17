@@ -1,0 +1,131 @@
+syntax = "proto3";
+
+package kakaoclone.ws;
+
+import "common.proto";
+
+option java_package = "com.kakaoclone.protocol.ws";
+option java_multiple_files = true;
+
+// ─────────────────────────────────────────────────────────────
+//  브라우저 ⇄ Gateway WebSocket 프레임
+//
+//  Phase 1~3 : Protobuf JSON 매핑으로 전송 (DevTools 에서 읽힘)
+//  Phase 4   : toByteArray() 로 교체 → 스키마 변경 없이 binary 전환
+// ─────────────────────────────────────────────────────────────
+
+enum FrameType {
+  FRAME_TYPE_UNSPECIFIED = 0;
+
+  // ── 클라이언트 → 서버 ──
+  SEND = 1;
+  READ = 2;
+  SYNC = 3;
+  PING = 4;
+
+  // ── 서버 → 클라이언트 ──
+  ACK          = 10;
+  MSG          = 11;
+  READ_UPDATED = 12;
+  SYNC_RESULT  = 13;
+  PONG         = 14;
+  ROOM_UPDATED = 15;
+  RECONNECT    = 16;   // 서버가 graceful shutdown 중 → 지연 후 재연결하라
+  ERROR        = 17;
+}
+
+message WsFrame {
+  uint32    v      = 1;   // 프로토콜 버전. 서버는 N-1 까지 수용
+  FrameType t      = 2;
+  string    req_id = 3;   // 요청 ↔ 응답 상관관계 (ACK 매칭용)
+
+  oneof payload {
+    // C → S
+    Send send = 10;
+    Read read = 11;
+    Sync sync = 12;
+
+    // S → C
+    Ack         ack          = 20;
+    Msg         msg          = 21;
+    ReadUpdated read_updated = 22;
+    SyncResult  sync_result  = 23;
+    RoomUpdated room_updated = 24;
+    Reconnect   reconnect    = 25;
+    kakaoclone.common.Error error = 26;
+  }
+}
+
+// ── C → S ────────────────────────────────────────────────────
+
+message Send {
+  int64                        room_id       = 1;
+  string                       client_msg_id = 2;   // UUID v7 권장. 재전송 멱등성의 핵심
+  kakaoclone.common.MessageType type         = 3;
+  string                       content       = 4;
+  string                       attachment    = 5;
+}
+
+message Read {
+  int64 room_id = 1;
+  int64 seq     = 2;   // 여기까지 읽었다 (클라이언트가 300ms 디바운스 후 최대값 1건만)
+}
+
+// 재접속 시 방별 커서를 보내고 증분만 받는다
+message Sync {
+  repeated RoomCursor rooms = 1;
+}
+
+message RoomCursor {
+  int64 room_id  = 1;
+  int64 last_seq = 2;   // 클라이언트가 IndexedDB 에 가진 마지막 seq
+}
+
+// ── S → C ────────────────────────────────────────────────────
+
+message Ack {
+  int64 room_id       = 1;
+  int64 seq           = 2;   // 서버가 배정한 순번 → 말풍선 "전송중" 해제
+  string client_msg_id = 3;
+  int64 created_at    = 4;
+  bool  duplicated    = 5;   // 재전송이어서 기존 건을 반환한 경우
+}
+
+message Msg {
+  kakaoclone.common.ChatMessage message = 1;
+  int32 unread_count = 2;   // 이 메시지를 아직 안 읽은 인원 수 (카톡의 "1")
+}
+
+// 개인별 읽음을 전부 뿌리지 않고 방의 최소 읽음 위치만 전파한다.
+// 클라이언트가 자기 화면의 각 메시지 미읽음 수를 로컬에서 계산.
+message ReadUpdated {
+  int64 room_id      = 1;
+  int64 min_read_seq = 2;
+  int64 user_id      = 3;   // 누가 읽었는지 (1:1 방 표시용)
+  int64 seq          = 4;
+}
+
+message SyncResult {
+  repeated RoomSync rooms = 1;
+}
+
+message RoomSync {
+  int64                                 room_id        = 1;
+  repeated kakaoclone.common.ChatMessage messages      = 2;
+  int64                                 last_seq       = 3;
+  // 밀린 양이 임계치를 넘으면 WS 로 밀지 않고 REST 페이징을 지시한다
+  bool                                  requires_full_reload = 4;
+}
+
+message RoomUpdated {
+  int64  room_id         = 1;
+  int64  last_message_seq = 2;
+  string preview          = 3;
+  int64  last_message_at  = 4;
+  int32  unread_count     = 5;
+}
+
+message Reconnect {
+  int32  after_millis = 1;   // 이 시간만큼 기다렸다가 재연결 (썬더링 허드 방지)
+  string reason       = 2;
+}

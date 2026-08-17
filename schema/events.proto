@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package kakaoclone.event;
+
+import "common.proto";
+
+option java_package = "com.kakaoclone.protocol.event";
+option java_multiple_files = true;
+
+// ─────────────────────────────────────────────────────────────
+//  Kafka 이벤트
+//
+//  토픽              파티션 키   컨슈머
+//  ─────────────────────────────────────────────────────────
+//  message.created   room_id    FanoutConsumer, (Phase4) 검색색인
+//  push.required     user_id    PushConsumer
+//  read.updated      room_id    FanoutConsumer
+//
+//  파티션 키를 room_id 로 두면 같은 방의 이벤트가 같은 파티션에 들어가
+//  순서가 보장됩니다. 이게 fanout 순서 역전을 막습니다.
+// ─────────────────────────────────────────────────────────────
+
+message MessageCreated {
+  kakaoclone.common.ChatMessage message      = 1;
+  repeated int64                member_ids   = 2;   // fanout 대상 (발신자 포함)
+  int32                         member_count = 3;
+  int64                         occurred_at  = 4;
+}
+
+message ReadUpdatedEvent {
+  int64 room_id      = 1;
+  int64 user_id      = 2;
+  int64 seq          = 3;
+  int64 min_read_seq = 4;
+  int64 occurred_at  = 5;
+}
+
+// 접속 중이 아닌 멤버에게만 발행됩니다.
+message PushRequired {
+  int64  user_id      = 1;
+  int64  room_id      = 2;
+  string room_title   = 3;
+  string sender_name  = 4;
+  string preview      = 5;
+  int32  unread_total = 6;
+  int64  occurred_at  = 7;
+}

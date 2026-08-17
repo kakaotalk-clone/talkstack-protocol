@@ -1,0 +1,15 @@
+version: v2
+
+modules:
+  - path: schema
+
+lint:
+  use:
+    - STANDARD
+  except:
+    # 파일명과 패키지명을 1:1로 강제하지 않습니다 (common.proto 를 공유)
+    - PACKAGE_DIRECTORY_MATCH
+
+breaking:
+  use:
+    - FILE

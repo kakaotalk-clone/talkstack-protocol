@@ -1,0 +1,16 @@
+version: v2
+
+plugins:
+  - local: ./node_modules/.bin/protoc-gen-ts_proto
+    out: src/generated
+    opt:
+      - esModuleInterop=true
+      # 웹 클라이언트는 gRPC 를 쓰지 않습니다 (WebSocket + REST 만)
+      - outputServices=false
+      - useOptionals=messages
+      - oneof=unions
+      # int64 를 number 로 매핑합니다.
+      # 주의: JS number 는 2^53 까지만 정확합니다. roomId·seq 가 그 이상으로
+      # 커질 규모가 되면 bigint 로 바꿔야 합니다 (학습 범위에서는 안전).
+      - forceLong=number
+      - snakeToCamel=true

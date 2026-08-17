@@ -1,0 +1,13 @@
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# gen-ts
+node_modules/
+gen-ts/src/generated/
+gen-ts/dist/
+
+.idea/
+*.iml
+.vscode/
+.DS_Store

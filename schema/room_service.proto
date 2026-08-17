@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package kakaoclone.room;
+
+import "common.proto";
+
+option java_package = "com.kakaoclone.protocol.room";
+option java_multiple_files = true;
+
+// ─────────────────────────────────────────────────────────────
+//  Chat Service → API Service (gRPC)
+//
+//  kakao_msg 와 kakao_core 는 서로의 테이블을 직접 조회하지 않습니다.
+//  chat 이 방 멤버를 알아야 할 때 Redis 캐시를 먼저 보고,
+//  캐시 미스일 때만 이 RPC 로 조회합니다.
+// ─────────────────────────────────────────────────────────────
+
+service RoomService {
+  rpc GetRoomMembers (GetRoomMembersRequest) returns (GetRoomMembersResponse);
+  rpc GetRoom        (GetRoomRequest)        returns (GetRoomResponse);
+}
+
+message GetRoomMembersRequest {
+  int64 room_id = 1;
+}
+
+message GetRoomMembersResponse {
+  int64          room_id = 1;
+  repeated int64 user_ids = 2;
+}
+
+message GetRoomRequest {
+  int64 room_id = 1;
+}
+
+message GetRoomResponse {
+  int64                      room_id      = 1;
+  kakaoclone.common.RoomType type         = 2;
+  string                     title        = 3;
+  int32                      member_count = 4;
+  repeated int64             user_ids     = 5;
+}

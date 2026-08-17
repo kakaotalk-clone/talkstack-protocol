@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package kakaoclone.chat;
+
+import "common.proto";
+
+option java_package = "com.kakaoclone.protocol.chat";
+option java_multiple_files = true;
+
+// ─────────────────────────────────────────────────────────────
+//  Gateway → Chat Service (gRPC)
+//
+//  Gateway 는 비즈니스 로직을 갖지 않으므로, 프레임을 받으면
+//  전부 이 서비스로 넘깁니다.
+// ─────────────────────────────────────────────────────────────
+
+service ChatService {
+  rpc SendMessage (SendMessageRequest) returns (SendMessageResponse);
+  rpc MarkRead    (MarkReadRequest)    returns (MarkReadResponse);
+  rpc Sync        (SyncRequest)        returns (SyncResponse);
+}
+
+message SendMessageRequest {
+  int64                        room_id       = 1;
+  int64                        sender_id     = 2;
+  string                       client_msg_id = 3;
+  kakaoclone.common.MessageType type         = 4;
+  string                       content       = 5;
+  string                       attachment    = 6;
+}
+
+message SendMessageResponse {
+  kakaoclone.common.ChatMessage message    = 1;
+  int32                         unread_count = 2;
+  bool                          duplicated   = 3;   // 멱등 재전송이었다
+}
+
+message MarkReadRequest {
+  int64 room_id = 1;
+  int64 user_id = 2;
+  int64 seq     = 3;
+}
+
+message MarkReadResponse {
+  bool  changed      = 1;   // false = 뒤로 가는 갱신이라 무시됨
+  int64 min_read_seq = 2;
+}
+
+message SyncRequest {
+  int64             user_id = 1;
+  repeated RoomCursor rooms = 2;
+}
+
+message RoomCursor {
+  int64 room_id  = 1;
+  int64 last_seq = 2;
+}
+
+message SyncResponse {
+  repeated RoomDelta rooms = 1;
+}
+
+message RoomDelta {
+  int64                                 room_id              = 1;
+  repeated kakaoclone.common.ChatMessage messages            = 2;
+  int64                                 last_seq             = 3;
+  bool                                  requires_full_reload = 4;
+}
