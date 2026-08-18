@@ -53,8 +53,19 @@ public final class RedisKeys {
         return "gw." + gatewayId;
     }
 
-    /** 리프레시 토큰 저장소 */
-    public static String refreshToken(long userId) {
-        return "user:" + userId + ":refresh";
+    /**
+     * 리프레시 토큰 저장소. <b>세션(기기) 단위</b>입니다.
+     *
+     * <p>유저당 하나로 두면 다른 기기에서 로그인하는 순간 앞 기기가 덮어써지고,
+     * 앞 기기가 재발급을 시도할 때 재사용 감지가 양쪽을 다 끊습니다.
+     * 세션 id 를 키에 넣으면 각 기기가 자기 것만 회전·무효화합니다.
+     */
+    public static String refreshToken(long userId, String sessionId) {
+        return "user:" + userId + ":refresh:" + sessionId;
+    }
+
+    /** 이 유저의 활성 세션 id 목록. 전체 로그아웃과 세션 정리에 씁니다 */
+    public static String userSessions(long userId) {
+        return "user:" + userId + ":sessions";
     }
 }

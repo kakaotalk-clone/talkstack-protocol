@@ -27,6 +27,18 @@ public class JwtProvider {
 
     private static final String CLAIM_LOGIN_ID = "lid";
     private static final String CLAIM_TYPE = "typ";
+
+    /**
+     * 세션(기기) 식별자. <b>리프레시 토큰에만</b> 들어갑니다.
+     *
+     * <p>이게 없으면 저장소가 유저당 토큰 하나만 들 수 있어, 다른 기기에서
+     * 로그인하는 순간 앞 기기의 토큰이 덮어써집니다. 그 뒤 앞 기기가 재발급을
+     * 시도하면 재사용 감지가 발동해 <b>양쪽 세션이 모두</b> 끊깁니다.
+     *
+     * <p>클라이언트가 만들어 보내지 않고 서버가 로그인 시 발급합니다 —
+     * 서명된 토큰 안에 있으므로 위조할 수 없고, 클라이언트는 따로 보관할 것도 없습니다.
+     */
+    private static final String CLAIM_SESSION_ID = "sid";
     private static final String TYPE_ACCESS = "a";
     private static final String TYPE_REFRESH = "r";
 
@@ -76,14 +88,17 @@ public class JwtProvider {
     private String issue(JwtPayload payload, String type, Duration ttl) {
         Date now = Date.from(clock.instant());
         Date expiry = Date.from(clock.instant().plus(ttl));
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(String.valueOf(payload.userId()))
                 .claim(CLAIM_LOGIN_ID, payload.loginId())
                 .claim(CLAIM_TYPE, type)
                 .issuedAt(now)
-                .expiration(expiry)
-                .signWith(key)
-                .compact();
+                .expiration(expiry);
+
+        if (payload.sessionId() != null) {
+            builder.claim(CLAIM_SESSION_ID, payload.sessionId());
+        }
+        return builder.signWith(key).compact();
     }
 
     private JwtPayload parse(String token, String expectedType) {
@@ -100,7 +115,8 @@ public class JwtProvider {
             }
             return new JwtPayload(
                     Long.parseLong(claims.getSubject()),
-                    claims.get(CLAIM_LOGIN_ID, String.class));
+                    claims.get(CLAIM_LOGIN_ID, String.class),
+                    claims.get(CLAIM_SESSION_ID, String.class));
 
         } catch (ExpiredJwtException e) {
             throw new BusinessException(ErrorCode.TOKEN_EXPIRED);
