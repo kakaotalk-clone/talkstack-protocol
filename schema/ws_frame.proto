@@ -23,6 +23,7 @@ enum FrameType {
   SYNC = 3;
   PING = 4;
   DELETE = 5;
+  HISTORY = 6;   // 과거 메시지 더 주세요 (위로 스크롤)
 
   // ── 서버 → 클라이언트 ──
   ACK          = 10;
@@ -34,6 +35,7 @@ enum FrameType {
   RECONNECT    = 16;   // 서버가 graceful shutdown 중 → 지연 후 재연결하라
   ERROR        = 17;
   DELETED      = 18;   // 누군가 메시지를 삭제함
+  HISTORY_RESULT = 19;
 }
 
 message WsFrame {
@@ -47,6 +49,7 @@ message WsFrame {
     Read read = 11;
     Sync sync = 12;
     Delete delete = 13;
+    History history = 14;
 
     // S → C
     Ack         ack          = 20;
@@ -56,6 +59,7 @@ message WsFrame {
     RoomUpdated room_updated = 24;
     Reconnect   reconnect    = 25;
     Deleted     deleted      = 27;
+    HistoryResult history_result = 28;
     kakaoclone.common.Error error = 26;
   }
 }
@@ -83,6 +87,19 @@ message Sync {
 message RoomCursor {
   int64 room_id  = 1;
   int64 last_seq = 2;   // 클라이언트가 IndexedDB 에 가진 마지막 seq
+}
+
+// 과거로 거슬러 올라가는 조회. Sync 와 방향이 반대입니다.
+//
+//   Sync    : last_seq 이후 — 재접속했을 때 놓친 것 따라잡기
+//   History : before_seq 이전 — 위로 스크롤해서 옛날 것 보기
+//
+// 둘 다 필요합니다. Sync 만으로는 밀린 양이 SYNC_LIMIT 을 넘는 순간
+// (requires_full_reload=true) 클라이언트가 아무것도 받지 못합니다.
+message History {
+  int64 room_id    = 1;
+  int64 before_seq = 2;   // 이 seq 미만을 가져옵니다. 0 이면 최신부터
+  int32 limit      = 3;   // 서버가 상한을 강제합니다 (SYNC_LIMIT)
 }
 
 // ── S → C ────────────────────────────────────────────────────
@@ -117,8 +134,19 @@ message RoomSync {
   int64                                 room_id        = 1;
   repeated kakaoclone.common.ChatMessage messages      = 2;
   int64                                 last_seq       = 3;
-  // 밀린 양이 임계치를 넘으면 WS 로 밀지 않고 REST 페이징을 지시한다
+  // 밀린 양이 임계치를 넘으면 WS 로 한꺼번에 밀지 않는다.
+  // 클라이언트는 이 방의 로컬 캐시를 버리고 HISTORY 로 최신 페이지부터 다시 받는다.
   bool                                  requires_full_reload = 4;
+}
+
+// 최신순(seq DESC)으로 내려줍니다. 위로 스크롤하는 UI 는 앞쪽부터 붙이므로
+// 클라이언트가 뒤집는 편이 자연스럽습니다.
+message HistoryResult {
+  int64                                 room_id  = 1;
+  repeated kakaoclone.common.ChatMessage messages = 2;
+  // 더 있는지. limit 만큼 꽉 채워 왔으면 true — 정확한 총 개수를 세지 않습니다.
+  // count 는 방이 커질수록 비싸지고, 무한스크롤에는 "더 있나"만 있으면 됩니다.
+  bool                                  has_more = 3;
 }
 
 message RoomUpdated {

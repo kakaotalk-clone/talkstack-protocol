@@ -19,6 +19,7 @@ service ChatService {
   rpc MarkRead      (MarkReadRequest)      returns (MarkReadResponse);
   rpc Sync          (SyncRequest)          returns (SyncResponse);
   rpc DeleteMessage (DeleteMessageRequest) returns (DeleteMessageResponse);
+  rpc LoadHistory   (LoadHistoryRequest)   returns (LoadHistoryResponse);
 }
 
 // 메시지 삭제. 행을 지우지 않고 deleted_at 만 채웁니다 —
@@ -73,6 +74,20 @@ message RoomCursor {
 
 message SyncResponse {
   repeated RoomDelta rooms = 1;
+}
+
+// 과거 메시지 페이징. Sync 가 requires_full_reload 를 돌려준 뒤
+// 클라이언트가 회복하는 경로이기도 합니다.
+message LoadHistoryRequest {
+  int64 room_id    = 1;
+  int64 user_id    = 2;   // 방 참여자인지 확인합니다
+  int64 before_seq = 3;   // 0 이면 최신부터
+  int32 limit      = 4;
+}
+
+message LoadHistoryResponse {
+  repeated kakaoclone.common.ChatMessage messages = 1;   // seq DESC
+  bool                                  has_more = 2;
 }
 
 message RoomDelta {
