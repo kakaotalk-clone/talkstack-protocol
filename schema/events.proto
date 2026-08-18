@@ -25,6 +25,13 @@ message MessageCreated {
   repeated int64                member_ids   = 2;   // fanout 대상 (발신자 포함)
   int32                         member_count = 3;
   int64                         occurred_at  = 4;
+
+  // 채팅 목록에 보여줄 한 줄 요약 ("사진", "동영상", 텍스트 앞부분).
+  //
+  // kakao_core 는 MongoDB 를 직접 읽을 수 없으므로 chat_rooms 에 복제해야 하는데,
+  // 포맷 규칙(타입별 문구, 줄바꿈 제거, 200자 컷)을 kakao-api 가 다시 구현하면
+  // 두 곳이 어긋납니다. 만든 쪽이 계산해서 실어 보냅니다.
+  string preview = 5;
 }
 
 message ReadUpdatedEvent {
@@ -37,6 +44,14 @@ message ReadUpdatedEvent {
   // 필드 추가는 하위 호환이라 안전합니다 (README 의 호환성 규칙 참조).
   // 컨슈머가 방 정보를 다시 조회하지 않도록 fanout 대상을 함께 실어 보냅니다.
   repeated int64 member_ids = 6;
+}
+
+message MessageDeleted {
+  int64 room_id            = 1;
+  int64 seq                = 2;
+  int64 deleted_by         = 3;
+  repeated int64 member_ids = 4;
+  int64 occurred_at        = 5;
 }
 
 // 접속 중이 아닌 멤버에게만 발행됩니다.

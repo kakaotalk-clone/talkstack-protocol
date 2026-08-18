@@ -22,6 +22,7 @@ enum FrameType {
   READ = 2;
   SYNC = 3;
   PING = 4;
+  DELETE = 5;
 
   // ── 서버 → 클라이언트 ──
   ACK          = 10;
@@ -32,6 +33,7 @@ enum FrameType {
   ROOM_UPDATED = 15;
   RECONNECT    = 16;   // 서버가 graceful shutdown 중 → 지연 후 재연결하라
   ERROR        = 17;
+  DELETED      = 18;   // 누군가 메시지를 삭제함
 }
 
 message WsFrame {
@@ -44,6 +46,7 @@ message WsFrame {
     Send send = 10;
     Read read = 11;
     Sync sync = 12;
+    Delete delete = 13;
 
     // S → C
     Ack         ack          = 20;
@@ -52,6 +55,7 @@ message WsFrame {
     SyncResult  sync_result  = 23;
     RoomUpdated room_updated = 24;
     Reconnect   reconnect    = 25;
+    Deleted     deleted      = 27;
     kakaoclone.common.Error error = 26;
   }
 }
@@ -123,6 +127,19 @@ message RoomUpdated {
   string preview          = 3;
   int64  last_message_at  = 4;
   int32  unread_count     = 5;
+}
+
+// 내 메시지 삭제 요청
+message Delete {
+  int64 room_id = 1;
+  int64 seq     = 2;
+}
+
+// 삭제 사실을 방 참여자 전원에게 알립니다.
+// 받은 쪽은 그 seq 의 말풍선을 "삭제된 메시지입니다" 로 바꿉니다.
+message Deleted {
+  int64 room_id = 1;
+  int64 seq     = 2;
 }
 
 message Reconnect {
