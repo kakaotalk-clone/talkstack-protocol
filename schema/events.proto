@@ -56,11 +56,16 @@ message MessageDeleted {
 
 // 접속 중이 아닌 멤버에게만 발행됩니다.
 message PushRequired {
-  int64  user_id      = 1;
+  int64  user_id      = 1;   // 받을 사람 (미접속자)
   int64  room_id      = 2;
-  string room_title   = 3;
-  string sender_name  = 4;
+  string room_title   = 3;   // 비어 있으면 kakao-api 가 자기 DB 에서 채웁니다
+  string sender_name  = 4;   // 〃
   string preview      = 5;
   int32  unread_total = 6;
   int64  occurred_at  = 7;
+
+  // 발신자. 이름은 kakao_core 에만 있으므로 id 만 실어 보내고
+  // kakao-api 가 알림 문구를 완성합니다.
+  int64  sender_id    = 8;
+  int64  seq          = 9;
 }
