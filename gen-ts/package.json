@@ -1,7 +1,7 @@
 {
   "name": "@kakaoclone/protocol",
   "version": "1.0.0",
-  "description": "카카오톡 클론 WebSocket 프레임 타입 (schema/*.proto 에서 생성)",
+  "description": "TalkStack WebSocket 프레임 타입 (schema/*.proto 에서 생성)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": ["dist"],

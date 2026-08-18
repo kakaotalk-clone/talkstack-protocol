@@ -1,4 +1,4 @@
-rootProject.name = "kakao-protocol"
+rootProject.name = "talkstack-protocol"
 
 include("gen-java")
 include("common-java")

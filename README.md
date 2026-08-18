@@ -1,4 +1,4 @@
-# kakao-protocol
+# talkstack-protocol
 
 멀티레포 6개가 공유하는 **계약 단일 원천(SSOT)**.
 `schema/*.proto` 를 고치면 Java 와 TypeScript 타입이 자동 생성됩니다.
@@ -90,7 +90,7 @@ npm install
 npm run build
 npm link
 
-cd ..\..\kakao-web
+cd ..\..\talkstack-web
 npm link @kakaoclone/protocol
 ```
 
