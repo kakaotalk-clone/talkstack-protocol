@@ -1,7 +1,12 @@
 version: v2
 
 plugins:
-  - local: ./node_modules/.bin/protoc-gen-ts_proto
+  # ★ node 로 직접 실행합니다.
+  #   ./node_modules/.bin/protoc-gen-ts_proto 는 Windows 에서 확장자 없는 셸
+  #   스크립트라 buf 가 실행하지 못합니다("... 파일 또는 외부 명령이 아닙니다").
+  #   .cmd 를 가리키면 이번엔 Linux/CI 에서 깨집니다. node + JS 진입점이
+  #   양쪽에서 동작하는 유일한 조합입니다.
+  - local: ["node", "./node_modules/ts-proto/protoc-gen-ts_proto"]
     out: src/generated
     opt:
       - esModuleInterop=true
@@ -14,3 +19,8 @@ plugins:
       # 커질 규모가 되면 bigint 로 바꿔야 합니다 (학습 범위에서는 안전).
       - forceLong=number
       - snakeToCamel=true
+      # ★ 생성 코드의 상대 import 에 .js 를 붙입니다.
+      #   기본값은 확장자 없는 `from "./common"` 인데, 번들러(Vite)는 참아 주지만
+      #   Node ESM 은 ERR_MODULE_NOT_FOUND 로 죽습니다.
+      #   부하테스트 스크립트처럼 Node 에서 직접 쓰는 소비자가 있으므로 붙여 둡니다.
+      - importSuffix=.js
